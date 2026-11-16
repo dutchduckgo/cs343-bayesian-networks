@@ -145,7 +145,10 @@ def fillYCPT(bayesNet, gameState):
 
     yFactor = bn.Factor([Y_POS_VAR], [], bayesNet.variableDomainsDict())
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    yFactor.setProbability({Y_POS_VAR: BOTH_TOP_VAL}, PROB_BOTH_TOP)
+    yFactor.setProbability({Y_POS_VAR: BOTH_BOTTOM_VAL}, PROB_BOTH_BOTTOM)  
+    yFactor.setProbability({Y_POS_VAR: LEFT_TOP_VAL}, PROB_ONLY_LEFT_TOP)  
+    yFactor.setProbability({Y_POS_VAR: LEFT_BOTTOM_VAL}, PROB_ONLY_LEFT_BOTTOM)  
     bayesNet.setCPT(Y_POS_VAR, yFactor)
 
 def fillHouseCPT(bayesNet, gameState):
@@ -210,8 +213,42 @@ def fillObsCPT(bayesNet, gameState):
     bottomLeftPos, topLeftPos, bottomRightPos, topRightPos = gameState.getPossibleHouses()
 
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    for housePos, houseVal in [(bottomLeftPos, BOTTOM_LEFT_VAL), (topLeftPos, TOP_LEFT_VAL),
+                               (bottomRightPos, BOTTOM_RIGHT_VAL), (topRightPos, TOP_RIGHT_VAL)]:
 
+        for obsPos in gameState.getHouseWalls(housePos):
+            obsVar = OBS_VAR_TEMPLATE % obsPos
+            # obsFactor = P (obsVar | FOOD_HOUSE_VAR, GHOST_HOUSE_VAR)
+            obsFactor = bn.Factor([obsVar], [FOOD_HOUSE_VAR, GHOST_HOUSE_VAR], bayesNet.variableDomainsDict())
+            for assignment in obsFactor.getAllPossibleAssignmentDicts():
+                # each assignment looks like: 
+                # obs(3, 5): red
+                # foodHouse: topLeft
+                # ghostHouse: bottomRight
+                color = assignment[obsVar]
+                if assignment[FOOD_HOUSE_VAR] == houseVal:
+                    if color == RED_OBS_VAL:
+                        prob = PROB_FOOD_RED
+                    elif color == BLUE_OBS_VAL:
+                        prob = 1 - PROB_FOOD_RED
+                    else:
+                        prob = 0
+                elif assignment[GHOST_HOUSE_VAR] == houseVal:
+                    if color == RED_OBS_VAL:
+                        prob = PROB_GHOST_RED
+                    elif color == BLUE_OBS_VAL:
+                        prob = 1 - PROB_GHOST_RED
+                    else:
+                        prob = 0
+                else:
+                    if color == NO_OBS_VAL:
+                        prob = 1
+                    else:
+                        prob = 0
+
+                obsFactor.setProbability(assignment, prob)
+            bayesNet.setCPT(obsVar, obsFactor)
+                        
 def getMostLikelyFoodHousePosition(evidence, bayesNet, eliminationOrder):
     """
     Question 7: Marginal inference for pacman
