@@ -262,7 +262,17 @@ def getMostLikelyFoodHousePosition(evidence, bayesNet, eliminationOrder):
     (This should be a very short method.)
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    foodFactor = inference.inferenceByVariableElimination(
+        bayesNet, [FOOD_HOUSE_VAR], evidence, eliminationOrder
+    )
+    bestProbability = -1
+    bestPosition = None
+    for assignment in foodFactor.getAllPossibleAssignmentDicts():
+        probability = foodFactor.getProbability(assignment)
+        if probability > bestProbability:
+            bestProbability = probability
+            bestPosition = assignment
+    return bestPosition
 
 
 class BayesAgent(game.Agent):
@@ -364,7 +374,22 @@ class VPIAgent(BayesAgent):
         rightExpectedValue = 0
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        houseFactor = inference.inferenceByVariableElimination(
+            self.bayesNet, HOUSE_VARS, evidence, eliminationOrder
+        )
+        foodLeftAssignment = dict(evidence)
+        foodLeftAssignment.update({FOOD_HOUSE_VAR: TOP_LEFT_VAL,
+                                   GHOST_HOUSE_VAR: TOP_RIGHT_VAL})
+        foodRightAssignment = dict(evidence)
+        foodRightAssignment.update({FOOD_HOUSE_VAR: TOP_RIGHT_VAL,
+                                    GHOST_HOUSE_VAR: TOP_LEFT_VAL})
+        foodLeftProbability = houseFactor.getProbability(foodLeftAssignment)
+        foodRightProbability = houseFactor.getProbability(foodRightAssignment)
+
+        leftExpectedValue = (foodLeftProbability * WON_GAME_REWARD
+                             + foodRightProbability * GHOST_COLLISION_REWARD)
+        rightExpectedValue = (foodRightProbability * WON_GAME_REWARD
+                              + foodLeftProbability * GHOST_COLLISION_REWARD)
 
         return leftExpectedValue, rightExpectedValue
 
@@ -430,7 +455,11 @@ class VPIAgent(BayesAgent):
         expectedValue = 0
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        for probability, explorationEvidence in self.getExplorationProbsAndOutcomes(evidence):
+            leftValue, rightValue = self.computeEnterValues(
+                explorationEvidence, enterEliminationOrder
+            )
+            expectedValue += probability * max(leftValue, rightValue)
 
         return expectedValue
 
